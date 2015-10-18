@@ -21,7 +21,9 @@ class BlobelTestLorentzian():
 	Parameters
 	----------
 	range : tuple of floats
-		Intervall [range[0], range[1]] in which the true pdf is defined
+		Intervall [range[0], range[1]] in which the true pdf is defined.
+		It should be 0<=range[0]<range[1].
+		If range[0] is <0, the shift function shifts every number<0 to 0.
 	N : int
 		Number of points sampled from the pdf for the true distribution
 
@@ -180,8 +182,9 @@ class BlobelTestLorentzian():
 
 		# Shift accepted values systematically
 		# y_shift = x - 0.2 * x**2 / 4.
-		yl = 0
-		ym = 0.95
+		xm = 0.5 * (self.xl + self.xh)
+		yl = np.maximum(self.xl, 0.)
+		ym = 0.95 * xm
 		yh = 1.8
 		measured = self._parabola(measured, yl, ym, yh)
 		# Correct numerical errors at the lower boundary. Events should stay >= xl

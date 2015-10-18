@@ -77,9 +77,10 @@ histerr(ax, meas, normed=normed, nbins=nbins, range=[xl, xh],
 # Plot true pdf
 x = np.linspace(xl, xh, 1000)
 y = l._pdf(x, xl, xh)
-ax.plot(x, y, label="true pdf")
+ax.plot(x, y, label="true pdf", color="k")
 
 ax.legend(loc="best")
+plt.savefig("testdata.png", dpi=200)
 plt.show()
 
 

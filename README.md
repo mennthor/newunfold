@@ -14,3 +14,30 @@ The pdf of the true distribution is the sum of three lorenz function normed corr
 	$$
 	f_\text{true} = \sum_{i=1}^{3} b_k \frac{g_k^2}{(x-x_k^2) + g_k^2}
 	$$
+
+with the parameters
+		| k | b_k | x_k | g_k |
+		|---|-----|-----|-----|
+		| 1 |  1  | 0.4 | 2.0 |
+		| 2 | 10  | 0.8 | 0.2 |
+		| 2 |  5  | 1.5 | 0.2 |
+The normalization in the interval $[x_l, x_h]$ is:
+
+	$$
+	N = \left[ \sum_{i=1}^{3} b_k g_k ( \arctan((x_h - x_k) / g_K)
+				- np.arctan((x_l - x_k) / g_k) ) \right]^{-1}
+	$$
+
+The measured distribution is obtained from the true one by applying a limited acceptance probability, a systematic shift and a gaussian smearing. The acceptance probability is
+	$$
+	p_\text{acc} = 1 - \frac{(x - 1)^2}{2}
+	$$
+
+The function
+	$$
+	y_\text{shift} = x - \frac{x}{20}
+	$$
+
+shifts the data. The smearing is applied with a standard normal distribution with $\sigma=0.1$. An example with 10000 numbers is shown below.
+
+![true and measured data](https://raw.githubusercontent.com/mennthor/newunfold/master/res/testdata.png "true and measured data")
