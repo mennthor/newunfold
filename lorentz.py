@@ -28,9 +28,14 @@ class BlobelTestLorentzian():
 	"""
 	def __init__(self, **kwargs):
 		self.range = kwargs.pop("range", (0, 2))
+		self.N = kwargs.pop("N", 10000)
 		self.xl = self.range[0]
 		self.xh = self.range[1]
-		self.N = kwargs.pop(N, 10000)
+
+	def get_mc_sample(self):
+		self._gen_true_sample()
+		self._gen_meas_sample()
+		return self.true, self.measured
 
 
 	def _pdf(self, x, xl, xh):
@@ -51,8 +56,8 @@ class BlobelTestLorentzian():
 
 		return f / norm
 
-	# Sample with rejection method
-	def get_true_sample(self):
+
+	def _gen_true_sample(self):
 		"""
 		Get N random numbers sampled from the true pdf using the
 		rejection method.
@@ -91,23 +96,64 @@ class BlobelTestLorentzian():
 		totgen = 0
 		# Generate N samples each try and append non rejected. If total number
 		# is above N, use the first N random numbers for the sample.
-		while len(true)<=N:
+		while len(true)<=self.N:
 			# Comparison function g(vn)=k
-			vn = np.random.uniform(low=xl, high=xh, size=N)
+			vn = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
 			# Get pdf values from f(vn), which shall be sampled from
-			fvn = pdf(vn, xl, xh)
+			fvn = self._pdf(vn, self.xl, self.xh)
 			# Accept if vn * uniform[0,1] * g(vn) < f(vn)
-			accept = (k  * np.random.uniform(size=N) < fvn)
+			accept = (k  * np.random.uniform(size=self.N) < fvn)
 			# Append all accepted
 			true.extend(vn[accept])
 			# Count total generated randonm numbers for performance information
-			totgen += N
+			totgen += self.N
 		# Save only the requested N random numbers
-		self.true = np.array(true[:N])
+		self.true = np.array(true[:self.N])
 
-		return self.true
+		return
 
-	def get_meas_sample(self):
+
+	def _parabola(self, x, yl, ym, yh):
+		"""
+		Scaled acceptance function: parabola through the three points
+			(xl | yl), (xm | ym), (xh | yh)
+		with xm = 0.5 * (xl + xh).
+
+		Solution is analytically computed.
+
+		Parameters
+		----------
+		x : ndarray
+			x-values where the function is evaluated
+		y* : float
+			y-values of the three points defining the parabola
+
+		Returns
+		-------
+		f : float
+			Function values at x
+		"""
+		xm = 0.5 * (self.xl + self.xh)
+
+		# coefficient functions
+		a = lambda xl, xm, xh, yl, ym, yh: ( ((yl-yh)*(xm-xh) - (ym-yh)*(xl-xh)) /
+			((xl**2-xh**2)*(xm-xh) - (xm**2-xh**2)*(xl-xh)) )
+		b = lambda a, xm, xh, rn, yh: ((ym-yh) - (xm**2-xh**2) * a) / (xm-xh)
+		c = lambda a, b, xh, yh: yh - a*xh**2 - b*xh
+
+		# Function values
+		y = lambda x, a, b, c: a * x**2 + b * x + c
+
+		a_ = a(self.xl, xm, self.xh, yl, ym, yh)
+		b_ = b(a_, xm, self.xh, ym, yh)
+		c_ = c(a_, b_, self.xh, yh)
+
+		f = y(x, a_, b_, c_)
+
+		return f
+
+
+	def _gen_meas_sample(self):
 		"""
 		Use the generated true sample to apply acceptance correction, shifting
 		and gaussian smearing to obtain a measured sample.
@@ -121,16 +167,25 @@ class BlobelTestLorentzian():
 		"""
 		# Test if true sample is already generated
 		if self.true is None:
-			self.get_true_sample()
+			self._gen_true_sample()
 
 		# Now apply all three effects one after another
 		# Acceptance: Loose (reject) event if (rnd > acceptance function)
-		acceptance = ( np.random.uniform(size=self.N)
-			<= (1. - 0.5 * (self.true - 1)**2) )
+		yl = 0.5
+		ym = 1
+		yh = 0.5
+		acceptance = ( np.random.uniform(size=self.N) <=
+			self._parabola(self.true, yl, ym, yh) )
 		measured = self.true[acceptance]
 
 		# Shift accepted values systematically
-		measured = measured - 0.2 * measured**2 / 4.
+		# y_shift = x - 0.2 * x**2 / 4.
+		yl = 0
+		ym = 0.95
+		yh = 1.8
+		measured = self._parabola(measured, yl, ym, yh)
+		# Correct numerical errors at the lower boundary. Events should stay >= xl
+		measured[measured<self.xl] = self.xl
 
 		# Smearing, add gaussian to measured values
 		overflow = np.ones_like(measured, dtype=bool)
@@ -139,11 +194,11 @@ class BlobelTestLorentzian():
 		while np.sum(overflow)>0:
 			smear[overflow] = measured[overflow] + np.random.normal(
 				loc=0, scale=0.1, size=len(measured[overflow]))
-			overflow = np.logical_or(smear<xl, smear>xh)
+			overflow = np.logical_or(smear<self.xl, smear>self.xh)
 
 		self.measured = smear
 
-		return self.measured
+		return
 
 
 
