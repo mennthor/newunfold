@@ -16,11 +16,13 @@ The pdf of the true distribution is the sum of three lorenz function normed corr
 	$$
 
 with the parameters
+
 		| k | b_k | x_k | g_k |
 		|---|-----|-----|-----|
 		| 1 |  1  | 0.4 | 2.0 |
 		| 2 | 10  | 0.8 | 0.2 |
 		| 2 |  5  | 1.5 | 0.2 |
+
 The normalization in the interval $[x_l, x_h]$ is:
 
 	$$
