@@ -38,6 +38,8 @@ The function
 	y_\text{shift} = x - \frac{x}{20}
 	$$
 
-shifts the data. The smearing is applied with a standard normal distribution with $\sigma=0.1$. An example with 10000 numbers is shown below.
+shifts the data. The smearing is applied with a standard normal distribution with $\sigma=0.1$.
+
+An example with 10000 generated numbers is shown below.
 
 ![true and measured data](https://raw.githubusercontent.com/mennthor/newunfold/master/res/testdata.png "true and measured data")

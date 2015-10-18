@@ -8,6 +8,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lorentz
 
+from matplotlib import rc
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+color = {
+         "r" : "#FF5555",
+         "b" : "#5DA5DA",
+         "g" : "#7BAA00",
+         "k" : "#262626",
+         "o" : "#FFA955",
+         "m" : "#9E62C4",
+         "n" : "#9D7331",
+         "p" : "#F590CF",
+         "c" : "#6DE4DF",
+         "y" : "#FFDC55",
+         }
+
 def histerr(ax, data, nbins=20 ,**kwargs):
 	"""
 	Create mpl hists with poissonian errorbars, that are scaled correctly
@@ -70,17 +86,20 @@ fig, ax = plt.subplots(1, 1)
 nbins = 80
 normed = True
 histerr(ax, true, normed=normed, nbins=nbins, range=[xl, xh],
-	histtype="step", color="r", label="true")
+	histtype="step", color=color["r"], label=r"true")
 histerr(ax, meas, normed=normed, nbins=nbins, range=[xl, xh],
-	histtype="step", color="b", label="measured")
+	histtype="step", color=color["b"], label=r"measured")
 
 # Plot true pdf
 x = np.linspace(xl, xh, 1000)
 y = l._pdf(x, xl, xh)
-ax.plot(x, y, label="true pdf", color="k")
+ax.plot(x, y, label=r"true pdf", color=color["k"])
 
+ax.set_xlabel(r"$x$")
+ax.set_ylabel(r"probability")
 ax.legend(loc="best")
-plt.savefig("testdata.png", dpi=200)
+fig.tight_layout()
+fig.savefig("testdata.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 
