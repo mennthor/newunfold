@@ -25,11 +25,11 @@ For the actual unfolding part a triple lorentzian is used. The pdf of the true d
 
 with the parameters
 
-		| k | b_k | x_k | g_k |
-		|---|-----|-----|-----|
-		| 1 |  1  | 0.4 | 2.0 |
-		| 2 | 10  | 0.8 | 0.2 |
-		| 2 |  5  | 1.5 | 0.2 |
+ k | b_k | x_k | g_k
+---|-----|-----|-----
+ 1 |  1  | 0.4 | 2.0
+ 2 | 10  | 0.8 | 0.2
+ 2 |  5  | 1.5 | 0.2
 
 The normalization in the interval $[x_l, x_h]$ is:
 
@@ -39,7 +39,7 @@ The normalization in the interval $[x_l, x_h]$ is:
 	$$
 
 
-# Detector influence
+## Detector influence
 The measured distribution is obtained from the true one by applying a limited acceptance probability, a systematic shift and a gaussian smearing. The acceptance probability is
 	$$
 	p_\text{acc} = 1 - \frac{(x - 1)^2}{2}
