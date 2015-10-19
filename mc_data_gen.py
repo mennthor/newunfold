@@ -15,6 +15,10 @@ class NullUnfoldData(object):
 	Base class for generating training and test data from
 	different distributions.
 
+	All events have a unique ID in range [0, N-1] and get the weight 1.
+
+	Events that are rejected in the acceptance step have weight -1.
+
 	Parameters
 	----------
 	range : tuple of floats
@@ -221,11 +225,11 @@ class LorentzianUnfoldData(NullUnfoldData):
 		# scaling factor k for comparison. Set k slightly above the found
 		# maximum to be sure to cover everything.
 		k = 1.01 * ymax
-		true = []
+		data = []
 		totgen = 0
 		# Generate N samples each try and append non rejected. If total number
 		# is above N, use the first N random numbers for the sample.
-		while len(true)<=self.N:
+		while len(data)<=self.N:
 			# Comparison function g(vn)=k
 			vn = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
 			# Get pdf values from f(vn), which shall be sampled from
@@ -233,11 +237,18 @@ class LorentzianUnfoldData(NullUnfoldData):
 			# Accept if vn * uniform[0,1] * g(vn) < f(vn)
 			accept = (k  * np.random.uniform(size=self.N) < fvn)
 			# Append all accepted
-			true.extend(vn[accept])
+			data.extend(vn[accept])
 			# Count total generated randonm numbers for performance information
 			totgen += self.N
 		# Save only the requested N random numbers
-		self.true = np.array(true[:self.N])
+		self.data = np.array(data[:self.N])
+
+		# Combine to recarray with fields (ID, data, weight)
+		self.true = np.empt((N, ), dtype=[
+			("ID", int), ("data", np.float), ("weight", np.float)])
+		self.true["ID"] = np.arange(N)
+		self.true["data"] = data
+		self.true["weight"] = np.ones_like(ID)
 
 		return
 
