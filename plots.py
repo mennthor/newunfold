@@ -6,8 +6,9 @@ Create (normed) hists with correctly scaled errorbars.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import lorentz
+import mc_data_gen
 
+# Pretty plots, custom colors
 from matplotlib import rc
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -79,28 +80,36 @@ def histerr(ax, data, nbins=20 ,**kwargs):
 N = 100000
 xl = 0
 xh = 2
-l = lorentz.BlobelTestLorentzian(N=N, range=[xl, xh])
-true, meas = l.get_mc_sample()
 
-fig, ax = plt.subplots(1, 1)
-nbins = 80
-normed = True
-histerr(ax, true, normed=normed, nbins=nbins, range=[xl, xh],
-	histtype="step", color=color["r"], label=r"true")
-histerr(ax, meas, normed=normed, nbins=nbins, range=[xl, xh],
-	histtype="step", color=color["b"], label=r"measured")
+# Plot each training and test data
+for typ in ["train", "test"]:
+	# Get correct MC data
+	if typ == "train":
+		mcd = mc_data_gen.FlatUnfoldData(N=N, range=[xl, xh])
+	else:
+		mcd = mc_data_gen.LorentzianUnfoldData(N=N, range=[xl, xh])
 
-# Plot true pdf
-x = np.linspace(xl, xh, 1000)
-y = l._pdf(x, xl, xh)
-ax.plot(x, y, label=r"true pdf", color=color["k"])
+	true, meas = mcd.get_mc_sample()
 
-ax.set_xlabel(r"$x$")
-ax.set_ylabel(r"probability")
-ax.legend(loc="best")
-fig.tight_layout()
-fig.savefig("testdata.png", dpi=300, bbox_inches="tight")
-plt.show()
+	fig, ax = plt.subplots(1, 1)
+	nbins = 80
+	normed = True
+	histerr(ax, true, normed=normed, nbins=nbins, range=[xl, xh],
+		histtype="step", color=color["r"], label=r"true")
+	histerr(ax, meas, normed=normed, nbins=nbins, range=[xl, xh],
+		histtype="step", color=color["b"], label=r"measured")
+
+	# Plot true pdf
+	x = np.linspace(xl, xh, 1000)
+	y = mcd._pdf(x, xl, xh)
+	ax.plot(x, y, label=r"true pdf", color=color["k"])
+
+	ax.set_xlabel(r"$x$")
+	ax.set_ylabel(r"probability")
+	ax.set_title("$N = {{{}}}$ events".format(N))
+	ax.legend(loc="best")
+	fig.tight_layout()
+	fig.savefig("{}.png".format(typ), dpi=300, bbox_inches="tight")
 
 
 
