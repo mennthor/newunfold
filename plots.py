@@ -94,10 +94,10 @@ for typ in ["train", "test"]:
 	fig, ax = plt.subplots(1, 1)
 	nbins = 80
 	normed = True
-	histerr(ax, true, normed=normed, nbins=nbins, range=[xl, xh],
-		histtype="step", color=color["r"], label=r"true")
-	histerr(ax, meas, normed=normed, nbins=nbins, range=[xl, xh],
-		histtype="step", color=color["b"], label=r"measured")
+	histerr(ax, true["data"], normed=normed, nbins=nbins, range=[xl, xh],
+		weights=true["weight"], histtype="step", color=color["r"], label=r"true")
+	histerr(ax, meas["data"], normed=normed, nbins=nbins, range=[xl, xh],
+		weights=true["weight"], histtype="step", color=color["b"], label=r"measured")
 
 	# Plot true pdf
 	x = np.linspace(xl, xh, 1000)

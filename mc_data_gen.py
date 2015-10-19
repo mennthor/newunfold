@@ -17,7 +17,7 @@ class NullUnfoldData(object):
 
 	All events have a unique ID in range [0, N-1] and get the weight 1.
 
-	Events that are rejected in the acceptance step have weight -1.
+	Events that are rejected in the acceptance step have weight 0.
 
 	Parameters
 	----------
@@ -28,6 +28,17 @@ class NullUnfoldData(object):
 	N : int
 		Number of points sampled from the pdf for the true distribution
 
+	Functions
+	---------
+	get_mc_sample
+		Returns the internally stored MC training and test data.
+
+	Attributes
+	----------
+	true : recarray
+		True MC data.
+	meas : recarray
+		Measured MC data.
 	"""
 	def __init__(self, **kwargs):
 		self.range = kwargs.pop("range", (0, 2))
@@ -37,9 +48,20 @@ class NullUnfoldData(object):
 
 
 	def get_mc_sample(self):
+		"""
+		Calls the internal MC generation functions and returns the stored
+		data as recarrays.
+
+		Returns
+		-------
+		true : recarray
+			True MC data. Fields: (ID, data, weight)
+		meas : recarray
+			Measured MC data. Fields: (ID, data, weight)
+		"""
 		self._gen_true_sample()
 		self._gen_meas_sample()
-		return self.true, self.measured
+		return self.true, self.meas
 
 
 	def __raise__(self, *args, **kwargs):
@@ -72,31 +94,33 @@ class NullUnfoldData(object):
 		This simulates the detector and is decoupled from the
 		generating true distribution.
 
-		Returns
-		-------
-		measured : ndarray
-			Measured random sample with size probably smaller than N.
+		Stores generated events in a np.recarray with fields
+			(ID, data, weight)
 		"""
 		# Test if true sample is already generated
 		if self.true is None:
 			self._gen_true_sample()
 
-		# Now apply all three effects one after another
+		# Set up weights, initially al events have the same weight
+		weights = np.ones(self.N)
+		data = self.true["data"]
+
 		# Acceptance: Loose (reject) event if (rnd > acceptance function)
 		yl = 0.5
 		ym = 1
 		yh = 0.5
 		acceptance = ( np.random.uniform(size=self.N) <=
-			self._parabola(self.true, yl, ym, yh) )
-		measured = self.true[acceptance]
+			self._parabola(data, yl, ym, yh) )
+		# If not accepted, set weight to 0
+		weights[~acceptance] = 0.
 
-		# Shift accepted values systematically
+		# Shift values systematically
 		# y_shift = x - 0.2 * x**2 / 4.
 		xm = 0.5 * (self.xl + self.xh)
 		yl = np.maximum(self.xl, 0.)
 		ym = 0.95 * xm
 		yh = 1.8
-		measured = self._parabola(measured, yl, ym, yh)
+		measured = self._parabola(data, yl, ym, yh)
 		# Correct numerical errors at the lower boundary. Events should stay >= xl
 		measured[measured<self.xl] = self.xl
 
@@ -110,6 +134,13 @@ class NullUnfoldData(object):
 			overflow = np.logical_or(smear<self.xl, smear>self.xh)
 
 		self.measured = smear
+
+		# Combine to recarray with fields (ID, data, weight)
+		self.meas = np.empty((self.N, ), dtype=[
+			("ID", int), ("data", np.float), ("weight", np.float)])
+		self.meas["ID"] = np.arange(self.N)
+		self.meas["data"] = measured
+		self.meas["weight"] = weights
 
 		return
 
@@ -195,10 +226,8 @@ class LorentzianUnfoldData(NullUnfoldData):
 		Get N random numbers sampled from the true pdf using the
 		rejection method.
 
-		Returns
-		-------
-		true : ndarray
-			True random sample with size N.
+		Stores generated events in a np.recarray with fields
+			(ID, data, weight)
 		"""
 		def minpdf(x, xl, xh):
 			"""
@@ -244,11 +273,11 @@ class LorentzianUnfoldData(NullUnfoldData):
 		self.data = np.array(data[:self.N])
 
 		# Combine to recarray with fields (ID, data, weight)
-		self.true = np.empt((N, ), dtype=[
+		self.true = np.empty((self.N, ), dtype=[
 			("ID", int), ("data", np.float), ("weight", np.float)])
-		self.true["ID"] = np.arange(N)
-		self.true["data"] = data
-		self.true["weight"] = np.ones_like(ID)
+		self.true["ID"] = np.arange(self.N)
+		self.true["data"] = self.data
+		self.true["weight"] = np.ones_like(self.data)
 
 		return
 
@@ -274,8 +303,19 @@ class FlatUnfoldData(NullUnfoldData):
 	def _gen_true_sample(self):
 		"""
 		Generate flat distribution with N entries.
+
+		Stores generated events in a np.recarray with fields
+			(ID, data, weight)
 		"""
-		self.true = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
+		# Generate N unfiormly distributed events in [xl, xh]
+		self.data = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
+
+		# Combine to recarray with fields (ID, data, weight)
+		self.true = np.empty((self.N, ), dtype=[
+			("ID", int), ("data", np.float), ("weight", np.float)])
+		self.true["ID"] = np.arange(self.N)
+		self.true["data"] = self.data
+		self.true["weight"] = np.ones_like(self.data)
 
 		return
 
