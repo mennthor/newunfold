@@ -49,18 +49,20 @@ def histerr(ax, data, nbins=20 ,**kwargs):
 	normed = kwargs.pop("normed", False)
 	color = kwargs.pop("color", "k")
 	range = kwargs.pop("range", None)
+	weights = kwargs.pop("weights", np.ones_like(data))
 
-	# Total num of events
-	nevents = len(data)
 	# Create hist
-	hist, bins = np.histogram(data, bins=nbins, range=range, normed=False)
+	hist, bins = np.histogram(data, bins=nbins, range=range,
+		normed=False, weights=weights)
+	# Total num of events with weighting
+	nevents = np.sum(hist)
 	# area under hist = sum_i (binwidth_i * nevents_i
 	#                 = intervall / nbins * nevents (for equal bin widths)
 	if normed == True:
 		hnorm = nbins / float(nevents * (xh - xl))
 	else:
 		hnorm = 1.
-	# Fisrt calculate poissonian errors, than scale hist otself
+	# First calculate poissonian errors, than scale hist otself
 	yerr = np.sqrt(hist) * hnorm
 	hist = hist * hnorm
 	binmids = 0.5 * (bins[:-1] + bins[1:])
@@ -73,7 +75,8 @@ def histerr(ax, data, nbins=20 ,**kwargs):
 	## Draw bins as errorbars
 	# ax.errorbar(binmids, hist, xerr=(bins[1]-bins[0])/2, fmt=",", color=color)
 	## Draw bins with steps
-	ax.hist(data, bins=nbins, normed=normed, range=range, color=color, **kwargs)
+	ax.hist(data, bins=nbins, normed=normed, range=range,
+		weights=weights, color=color, **kwargs)
 	ax.errorbar(binmids, hist, yerr=yerr, fmt=",", color=color)
 
 
@@ -95,9 +98,11 @@ for typ in ["train", "test"]:
 	nbins = 80
 	normed = True
 	histerr(ax, true["data"], normed=normed, nbins=nbins, range=[xl, xh],
-		weights=true["weight"], histtype="step", color=color["r"], label=r"true")
+		weights=true["weight"],
+		histtype="step", color=color["r"], label=r"true")
 	histerr(ax, meas["data"], normed=normed, nbins=nbins, range=[xl, xh],
-		weights=true["weight"], histtype="step", color=color["b"], label=r"measured")
+		weights=meas["weight"],
+		histtype="step", color=color["b"], label=r"measured")
 
 	# Plot true pdf
 	x = np.linspace(xl, xh, 1000)
@@ -106,7 +111,7 @@ for typ in ["train", "test"]:
 
 	ax.set_xlabel(r"$x$")
 	ax.set_ylabel(r"probability")
-	ax.set_title("$N = {{{}}}$ events".format(N))
+	ax.set_title("$N = {{{}}}$ events before detector".format(N))
 	ax.legend(loc="best")
 	fig.tight_layout()
 	fig.savefig("{}.png".format(typ), dpi=300, bbox_inches="tight")

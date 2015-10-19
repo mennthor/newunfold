@@ -117,23 +117,24 @@ class NullUnfoldData(object):
 		# Shift values systematically
 		# y_shift = x - 0.2 * x**2 / 4.
 		xm = 0.5 * (self.xl + self.xh)
+		# negativ values make no sense
 		yl = np.maximum(self.xl, 0.)
-		ym = 0.95 * xm
-		yh = 1.8
+		ym = self.xl + 0.95 * (xm - self.xl)
+		yh = self.xl + 0.9 * (self.xh - self.xl)
 		measured = self._parabola(data, yl, ym, yh)
 		# Correct numerical errors at the lower boundary. Events should stay >= xl
 		measured[measured<self.xl] = self.xl
 
 		# Smearing, add gaussian to measured values
+		sigma = (self.xh - self.xl) / 20.
+		# Keep track of values smeared outside the boundaries
 		overflow = np.ones_like(measured, dtype=bool)
-		smear = np.copy(measured)
-		# If values are smeared to outside the bounds try again
+		presmeared = np.copy(measured)
+		# If values are smeareded to outside the bounds try again
 		while np.sum(overflow)>0:
-			smear[overflow] = measured[overflow] + np.random.normal(
-				loc=0, scale=0.1, size=len(measured[overflow]))
-			overflow = np.logical_or(smear<self.xl, smear>self.xh)
-
-		self.measured = smear
+			measured[overflow] = presmeared[overflow] + np.random.normal(
+				loc=0, scale=sigma, size=np.sum(overflow))
+			overflow = np.logical_or(measured<self.xl, measured>self.xh)
 
 		# Combine to recarray with fields (ID, data, weight)
 		self.meas = np.empty((self.N, ), dtype=[
@@ -147,11 +148,14 @@ class NullUnfoldData(object):
 
 	def _parabola(self, x, yl, ym, yh):
 		"""
-		Scaled acceptance function: parabola through the three points
+		Parabola through the three points
 			(xl | yl), (xm | ym), (xh | yh)
 		with xm = 0.5 * (xl + xh).
 
 		Solution is analytically computed.
+
+		A parabola is used for both shifting the data and for the acceptance
+		probability.
 
 		Parameters
 		----------
@@ -180,7 +184,7 @@ class NullUnfoldData(object):
 		b_ = b(a_, xm, self.xh, ym, yh)
 		c_ = c(a_, b_, self.xh, yh)
 
-		f = y(x, a_, b_, c_)
+		f = np.copy(y(x, a_, b_, c_))
 
 		return f
 
