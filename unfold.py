@@ -51,8 +51,7 @@ class unfold():
 		measured :
 			One dimensional measured MC data used to build the response matrix.
 		"""
-		hist_true = np.histogram(true, bins=self.nbins_true, normed=False)
-		hist_meas = np.histogram(meas, bins=self.nbins_meas, normed=False)
+		# Track bin content on event base to build the response matrix
 
 
 
