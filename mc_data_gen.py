@@ -288,10 +288,10 @@ class LorentzianUnfoldData(NullUnfoldData):
 
 
 class FlatUnfoldData(NullUnfoldData):
-	"""
-	Flat true distribution, used for training the unfolding model.
-	"""
 	def __init__(self, **kwargs):
+		"""
+		Flat true distribution, used for training the unfolding model.
+		"""
 		super(FlatUnfoldData, self).__init__(**kwargs)
 
 
