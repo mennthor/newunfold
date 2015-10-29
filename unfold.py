@@ -1,5 +1,7 @@
 #-*-coding:utf8-*-
 
+import numpy as np
+
 class unfold():
 	"""
 	Unfolding class. Structure oriented on scikit learn.
@@ -38,16 +40,16 @@ class unfold():
 		"""
 		self.ndof = kwargs.pop("ndof", 10)
 
-		self.range_true = self.kwargs.pop("range_true", [0, 1])
-		self.range_meas = self.kwargs.pop("range_meas", [0, 1])
-		self.range_pred = self.kwargs.pop("range_pred", [0, 1])
+		self.range_true = kwargs.pop("range_true", [0, 1])
+		self.range_meas = kwargs.pop("range_meas", [0, 1])
+		self.range_pred = kwargs.pop("range_pred", [0, 1])
 
-		self.nbins_true = kwagrs.pop("nbins_true", 10)
-		self.nbins_meas = kwagrs.pop("nbins_meas", 10)
-		self.nbins_pred = kwagrs.pop("nbins_pred", 10)
+		self.nbins_true = kwargs.pop("nbins_true", 10)
+		self.nbins_meas = kwargs.pop("nbins_meas", 10)
+		self.nbins_pred = kwargs.pop("nbins_pred", 10)
 
 
-	def fit(self, true, meas):
+	def fit(self, true, meas, meas_weights):
 		"""
 		Fit model to training data from MC.
 
@@ -59,26 +61,51 @@ class unfold():
 		true : ndarray
 			One dimensional unbinned true MC data used to build the
 			response matrix.
-		measured :
+		measured : ndarray
 			One dimensional unbinned measured MC data used to build the
 			response matrix.
+		meas_weights : ndarray
+			Weights per event of the measured distribution.
 		"""
-		# Track bin content on event base to build the response matrix
+		# Create equally spaced bins in given range
 		bins_true = np.linspace(
-			self.range_true[0], self.range_true[1], nbins_true)
+			self.range_true[0], self.range_true[1], self.nbins_true + 1)
 		bins_meas = np.linspace(
-			self.range_meas[0], self.range_meas[1], nbins_meas)
+			self.range_meas[0], self.range_meas[1], self.nbins_meas + 1)
 
-		bin_index_by_event_true = np.digitze(true, bins=nbins_true)
-		bin_index_by_event_meas = np.digitze(meas, bins=nbins_meas)
+		# Get bin indices for each single event
+		bin_index_true = np.digitize(true, bins=bins_true)
+		bin_index_meas = np.digitize(meas, bins=bins_meas)
 
-		return
+		# Build the response matrix A:
+		# The entries of the response matrix A are integers.
+		# Element aij of the matrix A is the number of MC events from bin j
+		# of the true distribution x, which are measured in bin i of the
+		# measured distributioin y.
+		# So A has nbins_meas rows (index i) and nbins_true cols (index j)
+		A = np.zeros((self.nbins_meas, self.nbins_true))
+		# Loop over bin indices and count events
+		for j in np.arange(0, self.nbins_true):
+			for i in np.arange(0, self.nbins_meas):
+				# np.digitize starts with 1 as first bin, so correct for that
+				# by raising the bin indices
+				mask = np.logical_and(
+					bin_index_true == j+1,
+					bin_index_meas == i+1,
+					)
+				# Sum over measured event weights to take the acceptance
+				# into account
+				A[i][j] = np.sum(meas_weights[mask])
+
+		return A
 
 
 	def predict(self):
 		"""
 		Use trained model on prediction data.
 		"""
+
+
 
 		return
 

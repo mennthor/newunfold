@@ -95,7 +95,7 @@ for typ in ["train", "test"]:
 	true, meas = mcd.get_mc_sample()
 
 	fig, ax = plt.subplots(1, 1)
-	nbins = 80
+	nbins = 20
 	normed = True
 	histerr(ax, true["data"], normed=normed, nbins=nbins, range=[xl, xh],
 		weights=true["weight"],
