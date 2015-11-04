@@ -50,7 +50,7 @@ ax.plot(binmids, predicted_res.x, drawstyle="steps-mid")
 ax.plot(binmids, predicted_simple_inv, drawstyle="steps-mid")
 
 ax.set_yscale("log", nonposy="clip")
-ax.set_ylim((1, 1e5))
+ax.set_ylim((1, 1e7))
 
 ax.set_xlabel("bin number")
 ax.set_ylabel("entries")
