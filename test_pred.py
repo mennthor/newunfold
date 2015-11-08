@@ -23,7 +23,7 @@ unf = unfold.unfold(
 A = unf.fit(true["data"], meas["data"], meas["weight"])
 
 # Unfold the true distribtuion used for training to test the unfolding
-predicted_res = unf.predict(true["data"])
+predicted_res = unf.predict(true["data"], ndof=0.1)
 
 # Simpe inversion for comparison
 predicted_simple_inv = unf.predict_by_inverse(true["data"])

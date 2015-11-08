@@ -17,9 +17,12 @@ class unfold():
 	The method fit trains the model on training data, eg. MC data.
 
 	The method predict applies the trained model to test or real data.
+
+	Note:
 	The number of bins used to bin the true MC distribution is the same as the
 	number of bins used for the binning of the unfolded data. This is because
-	the ranks of the matrix and the vector must match in the unfolding equation.
+	the number of rows of the matrix and the vector must match in the
+	unfolding equation.
 	"""
 	def __init__(self, **kwargs):
 		"""
@@ -29,8 +32,6 @@ class unfold():
 
 		Parameters
 		----------
-		ndof : float
-			Degress of freedom for the regularization. Default: 10.
 		nbins_* : int
 			*true : Number of bins for the true MC trainig data.
 			*meas : Number of bins for the measured MC training data.
@@ -42,7 +43,7 @@ class unfold():
 			*pred : Range for the binning of the predicted unfolded data.
 			Default ranges are [0, 1].
 		"""
-		self.ndof = kwargs.pop("ndof", 10)
+		# self.ndof = kwargs.pop("ndof", 10)
 
 		self.range_true = kwargs.pop("range_true", [0, 1])
 		self.range_meas = kwargs.pop("range_meas", [0, 1])
@@ -74,8 +75,10 @@ class unfold():
 		# Create equally spaced bins in given range
 		bins_true = np.linspace(
 			self.range_true[0], self.range_true[1], self.nbins_true + 1)
+		self.h_true = bins_true[1] - bins_true[0]
 		bins_meas = np.linspace(
 			self.range_meas[0], self.range_meas[1], self.nbins_meas + 1)
+		self.h_meas = bins_meas[1] - bins_meas[0]
 
 		# Get bin indices for each single event
 		bin_index_true = np.digitize(true, bins=bins_true)
@@ -107,9 +110,14 @@ class unfold():
 		return self.A
 
 
-	def predict(self, data, data_weights=None):
+	def predict(self, data, data_weights=None, ndof=10):
 		"""
 		Use trained model matrix A on prediction data.
+
+		Parameters
+		----------
+		ndof : float
+			Degress of freedom for the regularization. Default: 10.
 
 		Returns
 		-------
@@ -117,6 +125,29 @@ class unfold():
 			Array of predicted, unfolded distribution, calculated by applying
 			the trained response matrix to the real measured data.
 		"""
+		def reg(x):
+			"""
+			Return the regularization term for a given set of bin entires x
+			describing the target function.
+
+			Calculate regularization term dependent on the curvature of
+			histogram described by the current x values, which is the
+			discretized integral over second derivation squared:
+				   int (f''(x))^2 dx
+				-> sum (f''(x))^2 * h
+			with the second numerical derivate at every position x[j]
+				f'' = (f(x[j-1]) - 2f(x[j]) + f(x[j+1])) / h^2
+			and the bin width (here equal for every bin)
+				h = x[j] - x[j-1] = x[1] - x[0] = const
+			"""
+			f2_squared = 0.
+			for j in np.arange(1, self.nbins_true-1):
+				f2_squared += (x[j-1] - 2*x[j] + x[j+1]) / self.h_true**3
+
+			regularization = 0.5 * ndof * f2_squared
+
+			return regularization
+
 		def chi2(x, *args):
 			"""
 			Approximating chi-square fit to obtain initial values for the
@@ -130,7 +161,7 @@ class unfold():
 			y_meas = np.array(args)
 			# Expected number of events for a specific choice of x
 			y = np.dot(self.A, x)
-			chi2 = np.sum( (y_meas - y)**2 / y_meas )
+			chi2 = np.sum( (y_meas - y)**2 / y_meas ) + reg(x)
 
 			return chi2
 
@@ -156,7 +187,7 @@ class unfold():
 			y_meas = np.array(args)
 			# Expected number of events for a specific choice of x
 			y = np.dot(self.A, x)
-			llh = np.sum( y - y_meas * np.log(y))
+			llh = np.sum( y - y_meas * np.log(y)) + reg(x)
 
 			return llh
 

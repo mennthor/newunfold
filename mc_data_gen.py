@@ -27,6 +27,9 @@ class NullUnfoldData(object):
 		If range[0] is <0, the shift function shifts every number<0 to 0.
 	N : int
 		Number of points sampled from the pdf for the true distribution
+	seed : int
+		Seed for the np.random.RandomState random number generator.
+		Default=11235813
 
 	Functions
 	---------
@@ -45,6 +48,11 @@ class NullUnfoldData(object):
 		self.N = kwargs.pop("N", 10000)
 		self.xl = self.range[0]
 		self.xh = self.range[1]
+		self.seed = kwargs.pop("seed", 11235813)
+
+		# Create the random number generator with fixed seed to be able to
+		# reproduce results
+		self.rs = np.random.RandomState(self.seed)
 
 
 	def get_mc_sample(self):
@@ -109,7 +117,7 @@ class NullUnfoldData(object):
 		yl = 0.5
 		ym = 1
 		yh = 0.5
-		acceptance = ( np.random.uniform(size=self.N) <=
+		acceptance = ( self.rs.uniform(size=self.N) <=
 			self._parabola(data, yl, ym, yh) )
 		# If not accepted, set weight to 0
 		weights[~acceptance] = 0.
@@ -132,7 +140,7 @@ class NullUnfoldData(object):
 		presmeared = np.copy(measured)
 		# If values are smeareded to outside the bounds try again
 		while np.sum(overflow)>0:
-			measured[overflow] = presmeared[overflow] + np.random.normal(
+			measured[overflow] = presmeared[overflow] + self.rs.normal(
 				loc=0, scale=sigma, size=np.sum(overflow))
 			overflow = np.logical_or(measured<self.xl, measured>self.xh)
 
@@ -264,11 +272,11 @@ class LorentzianUnfoldData(NullUnfoldData):
 		# is above N, use the first N random numbers for the sample.
 		while len(data)<=self.N:
 			# Comparison function g(vn)=k
-			vn = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
+			vn = self.rs.uniform(low=self.xl, high=self.xh, size=self.N)
 			# Get pdf values from f(vn), which shall be sampled from
 			fvn = self._pdf(vn, self.xl, self.xh)
 			# Accept if vn * uniform[0,1] * g(vn) < f(vn)
-			accept = (k  * np.random.uniform(size=self.N) < fvn)
+			accept = (k  * self.rs.uniform(size=self.N) < fvn)
 			# Append all accepted
 			data.extend(vn[accept])
 			# Count total generated randonm numbers for performance information
@@ -312,7 +320,7 @@ class FlatUnfoldData(NullUnfoldData):
 			(ID, data, weight)
 		"""
 		# Generate N unfiormly distributed events in [xl, xh]
-		self.data = np.random.uniform(low=self.xl, high=self.xh, size=self.N)
+		self.data = self.rs.uniform(low=self.xl, high=self.xh, size=self.N)
 
 		# Combine to recarray with fields (ID, data, weight)
 		self.true = np.empty((self.N, ), dtype=[
