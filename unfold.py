@@ -209,10 +209,10 @@ class unfold():
 		# Hist entries need to be positive
 		bounds = tuple((0, None) for i in range(self.nbins_true))
 
-		# Init preliminary fir with the measured bin entries
-		x0 = meas
+		# Init preliminary fit with ones
+		# Better (?): use the true bin entries from the MC truth
 		x0 = np.ones_like(meas)
-		# get preliminary fit to use as initial values for the likelihood fit
+		# Get preliminary fit to use as initial values for the likelihood fit
 		preliminary_res = sco.minimize(
 			chi2,
 			x0,
@@ -239,7 +239,7 @@ class unfold():
 
 	def predict_by_inverse(self, data, data_weights=None):
 		"""
-		Unfold by simple matrix inversion
+		Unfold by simple matrix inversion.
 		"""
 		s = np.shape(self.A)
 		if(not len(s) == 2):
@@ -259,6 +259,40 @@ class unfold():
 
 		return predicted
 
+	def predict_by_pseudoinverse(self, data, data_weights=None):
+		"""
+		Unfold by using the pseudo inverse obtained by a least squares fit.
+		"""
+		def least_squares(x, *args):
+			y_meas = np.array(args)
+			y = np.dot(self.A, x)
+			lsq = np.sum( (y_meas - y)**2 )
+
+			return lsq
+
+		meas, _ = np.histogram(
+			data,
+			bins=self.nbins_meas,
+			range=[self.range_meas[0], self.range_meas[1]],
+			density=False,
+			weights=data_weights,
+			)
+
+		args = tuple(meas)
+		method = "L-BFGS-B"
+		bounds = tuple((0, None) for i in range(self.nbins_true))
+
+		x0 = np.ones(self.nbins_true)
+		pseudoinverse_res = sco.minimize(
+			least_squares,
+			x0,
+			args=args,
+			bounds=bounds,
+			method=method,
+			jac=False,
+			)
+
+		return pseudoinverse_res
 
 
 
