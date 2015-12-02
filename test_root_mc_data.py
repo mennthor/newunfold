@@ -1,5 +1,9 @@
 #-*-coding:utf8-*-
 
+"""
+Create root files with the sample MC data to use in TRUEE for comparison.
+"""
+
 import numpy as np
 import ROOT
 import mc_data_gen

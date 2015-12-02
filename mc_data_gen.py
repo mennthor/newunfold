@@ -45,7 +45,7 @@ class NullUnfoldData(object):
 	"""
 	def __init__(self, **kwargs):
 		self.range = kwargs.pop("range", (0, 2))
-		self.N = kwargs.pop("N", 10000)
+		self.N = int(kwargs.pop("N", 10000))
 		self.xl = self.range[0]
 		self.xh = self.range[1]
 		self.seed = kwargs.pop("seed", 11235813)
