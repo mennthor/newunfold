@@ -1,6 +1,7 @@
 #-*-coding:utf8-*-
 
 import numpy as np
+np.set_printoptions(precision=3, linewidth=200)
 import matplotlib.pyplot as plt
 import mc_data_gen
 
@@ -23,7 +24,7 @@ C[  0,   0:2] = [-1,  1]
 C[N-1, N-2:N] = [ 1, -1]
 for i in range(1, N-1):
 	C[i, i-1:i+2] = [1, -2, 1]
-psi = 1.e-8
+psi = 1.e-3
 C = C + np.diag(np.zeros(N) + psi)
 # 4. Calculate the inverse C^-1 (pinv might be more stable at small psi)
 # Cinv = np.linalg.inv(C)
@@ -49,74 +50,93 @@ for j in np.arange(0, nbins_true):
 			bin_index_meas == i+1,
 			)
 		A[i][j] = np.sum(meas_weights[mask])
-##DEBUG
-# plt.matshow(A)
-# plt.xlabel("meas")
-# plt.ylabel("true")
-# plt.savefig("resp.pdf")
-# print(A)
-##DEBUG_END
-# 6. Create the measured histogram and its covariance matrix B. The covariance
+# 6. Create the measured histogram b and its covariance matrix B. The covariance
 #    is assumed diagonal with sqrt(bin_content) as a variance for each bin
-meas_hist, _ = np.histogram(
+b, _ = np.histogram(
 			meas_data,
 			bins=nbins_meas,
 			range=[range_meas[0], range_meas[1]],
 			density=False,
 			weights=meas_weights,
 			)
-meas_cov = np.zeros((nbins_meas, nbins_meas)) + np.diag(meas_hist)
-##DEBUG
-# print(meas_hist)
-# print(meas_cov)
-##DEBUG_END
+B = np.diag(b)
 
-##### Rescaling and rotation #####
-# 1. Perform SVD of the covariance matrix B. Note: B is pos-semidef, so
-#    the pseudo inverse yields two identical transformation matrices
-Q, R, Qt = np.linalg.svd(meas_cov)
+# ##### Rescaling and rotation #####
+# # 1. Perform SVD of the covariance matrix B. Note: B is pos-semidef, so
+# #    the pseudo inverse yields two identical transformation matrices
+# Q, R, Qt = np.linalg.svd(B)
+# R = np.diag(R)
+# # 2. Rotate and rescale A and the measured bin entries (r.h.s. of the LGS)
+# #    After that the covariance matrix is the unit matrix
+# sqrtRinv = np.sqrt(np.linalg.inv(R))
+# bt = np.dot(sqrtRinv, np.dot(Q, b))
+# At = np.dot(sqrtRinv, np.dot(Q, A))
+# # 3. Calculate the inverse of the covariance matrix X of the unfolded
+# #    distribution
+# # Xinv = np.zeros((nbins_true, nbins_true))
+# # for j in range(nbins_true):
+# # 	for k in range(nbins_true):
+# # 		Xinv[j, k] = np.sum(At[:, j], At[:, k]) / (true_data[j] * true_data[k])
+# # 4. Multiply At and Cinv and perform a SVD of the product
+# U, S, Vt = np.linalg.svd(np.dot(At, Cinv))
+# # 5. Calculate the rotated measured histogram d (r.h.s. of the rotated system)
+# d = np.dot(U.T, bt)
+
+
+# ##### Unfolding #####
+# # 1. Plot log10|d_i| vs index i and determine the effective rank of the system
+# #    from the resulting plot
+# fig, ax = plt.subplots(1, 1)
+# ax.hist(range(len(d)), bins=len(d), weights=np.abs(d), color="k", histtype="step")
+# ax.axhline(y=1, xmin=0, xmax=1, color="r", ls="--")
+# ax.set_xlabel("bin index")
+# ax.set_ylabel("abs(d_i)")
+# ax.set_yscale("log", nonposy="clip")
+# plt.tight_layout()
+# plt.savefig("logd.pdf", bbox_inches="tight")
+
+
 ##DEBUG
-# print(Q)
-# print(R)
-##DEBUG_END
-# 2. Rotate and rescale A and the measured bin entries (r.h.s. of the LGS)
-#    After that the covariance matrix is the unit matrix
-At = np.dot(Q, A)
-for i in range(nbins_meas):
-	At[i, :] = At[i, :] / np.sqrt(R[i])
-meas_hist_t = np.dot(Q, meas_hist) / np.sqrt(R[i])
-##DEBUG
-# np.set_printoptions(precision=3, linewidth=200)
+print("##### Initialization #####\n" + 60*"-")
+print("1. Number of bins and boundaries for the measured histogram b")
+print("nbins_meas = {}".format(nbins_meas))
+print("range_meas = {}".format(range_meas))
+print("bins_meas = {}".format(bins_meas))
+print("")
+print("2. Define num of bins, bounds for both true/init-MC distributuons")
+print("nbins_true = {}".format(nbins_true))
+print("range_true = {}".format(range_true))
+print("bins_true = {}".format(bins_true))
+print("")
+print("3. Modified second derivate matrix C")
+print("psi = {}".format(psi))
+print(C)
+print("")
+print("4. Inverse C^-1")
+print(Cinv)
+print("")
+print("5. Generate initial MC histogram and the response matrix A.")
+print("Nevents = {}".format(Nevents))
+print(A)
+plt.matshow(A)
+plt.xlabel("meas")
+plt.ylabel("true")
+plt.savefig("resp.pdf")
+print("")
+print("6. Measured histogram b and its covariance matrix B")
+print(b)
+print(B)
+
+print("")
+print("##### Rescaling & Rotation #####\n" + 60*"-")
+
+print("")
+print("##### Unfolding #####\n" + 60*"-")
 # print(At)
-# print(meas_hist_t)
+# print(bt)
 # plt.matshow(At)
 # plt.savefig("resp_trans.pdf")
 ##DEBUG_END
-# 3. Calculate the inverse of the covariance matrix X of the unfolded
-#    distribution
-# Xinv = np.zeros((nbins_true, nbins_true))
-# for j in range(nbins_true):
-# 	for k in range(nbins_true):
-# 		Xinv[j, k] = np.sum(At[:, j], At[:, k]) / (true_data[j] * true_data[k])
-# 4. Multiply At and Cinv and perform a SVD of the product
-U, S, Vt = np.linalg.svd(np.dot(At, Cinv))
-# 5. Calculate the rotated measured histogram d (r.h.s. of the rotated system)
-d = np.dot(U.T, meas_hist_t)
-
-
-##### Unfolding #####
-# 1. Plot log10|d_i| vs index i and determine the effective rank of the system
-#    from the resulting plot
-fig, ax = plt.subplots(1, 1)
-ax.hist(range(len(d)), bins=len(d), weights=np.abs(d), color="k", histtype="step")
-ax.axhline(y=1, xmin=0, xmax=1, color="r", ls="--")
-ax.set_xlabel("bin index")
-ax.set_ylabel("abs(d_i)")
-ax.set_yscale("log", nonposy="clip")
-plt.tight_layout()
-plt.savefig("logd.pdf", bbox_inches="tight")
-
-
 
 
 
