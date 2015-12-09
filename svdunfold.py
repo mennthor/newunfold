@@ -8,12 +8,12 @@ import mc_data_gen
 
 ##### Initialization #####
 # 1. Define number of bins and boundaries for the measured histogram
-nbins_meas = 10
+nbins_meas = 40
 range_meas = [0, 2]
 bins_meas = np.linspace(range_meas[0], range_meas[1], nbins_meas + 1)
 # 2. Define number of bins and boundaries common for the true unfolded
 #    histogram and the initial MC distribution
-nbins_true = 10
+nbins_true = 20
 range_true = [0, 2]
 bins_true = np.linspace(range_true[0], range_true[1], nbins_true + 1)
 # 3. Build the second numerical derivate matrix C. Add a small diagonal
@@ -29,8 +29,8 @@ C = C + np.diag(np.zeros(N) + psi)
 # 4. Calculate the inverse C^-1 (pinv might be more stable at small psi)
 # Cinv = np.linalg.inv(C)
 Cinv = np.linalg.pinv(C, rcond=0)
-# 5. Generate initial MC histogram and the response matrix A. The entries
-#    in A contain actual event numbers
+# 5. Generate initial MC histogram and the response matrix A with size
+#    nbins_meas x nbins_true. The entries in A contain actual event numbers
 Nevents = 5000
 mcd = mc_data_gen.LorentzianUnfoldData(
 	N=Nevents,
@@ -51,7 +51,7 @@ for j in np.arange(0, nbins_true):
 			)
 		A[i][j] = np.sum(meas_weights[mask])
 # 6. Create the measured histogram b and its covariance matrix B. The covariance
-#    is assumed diagonal with sqrt(bin_content) as a variance for each bin
+#    is assumed diagonal with sqrt(bin_content) as a stddev for each bin
 b, _ = np.histogram(
 			meas_data,
 			bins=nbins_meas,
@@ -116,11 +116,14 @@ print("4. Inverse C^-1")
 print(Cinv)
 print("")
 print("5. Generate initial MC histogram and the response matrix A.")
-print("Nevents = {}".format(Nevents))
+print("Nevents_true = {}".format(np.sum(np.histogram(true_data, bins=nbins_true)[0])))
+print("True {}".format(np.histogram(true_data, bins=nbins_true)[0]))
+print("Nevents_meas = {}".format(np.sum(b)))
+print("Meas {}".format(b))
 print(A)
 plt.matshow(A)
-plt.xlabel("meas")
-plt.ylabel("true")
+plt.xlabel("true")
+plt.ylabel("meas")
 plt.savefig("resp.pdf")
 print("")
 print("6. Measured histogram b and its covariance matrix B")
